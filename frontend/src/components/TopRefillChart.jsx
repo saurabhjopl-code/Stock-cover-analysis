@@ -1,17 +1,11 @@
-// frontend/src/components/TopRefillChart.jsx
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
-/*
-  Props:
-    data: [{ sku: 'SKU1', qty: 123 }, ...] -- max 10 rows recommended
-*/
 export default function TopRefillChart({ data = [] }) {
   if (!data || data.length === 0) {
     return <div className="p-4 text-sm text-gray-600">No refill data to display.</div>;
   }
 
-  // Recharts expects numbers for qty
   const chartData = data.map(d => ({ sku: String(d.sku), qty: Number(d.qty) }));
 
   return (

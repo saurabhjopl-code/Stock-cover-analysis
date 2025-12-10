@@ -1,4 +1,3 @@
-// frontend/src/pages/Dashboard.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SummaryCards from "../components/SummaryCards";
@@ -6,12 +5,6 @@ import DataTable from "../components/DataTable";
 import { getDownloadUrl } from "../api/api";
 import Papa from "papaparse";
 import TopRefillChart from "../components/TopRefillChart";
-
-/*
- Dashboard behaviour (updated):
-  - Use PapaParse to parse CSVs fetched from backend
-  - Show a bar chart of top 10 SKUs needing refill
-*/
 
 export default function Dashboard() {
   const location = useLocation();
@@ -22,7 +15,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(!initialResult);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(initialResult);
-  const [activeTab, setActiveTab] = useState("summary"); // summary | warehouse | refill | excess
+  const [activeTab, setActiveTab] = useState("summary");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -30,7 +23,6 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
-    // If no result passed from UploadPage, fetch CSVs from backend
     async function fetchFromBackend() {
       try {
         setLoading(true);
@@ -87,7 +79,6 @@ export default function Dashboard() {
   const refillRows = useMemo(() => (result?.refill ?? []), [result]);
   const excessRows = useMemo(() => (result?.excess ?? []), [result]);
 
-  // Filtering by SKU search
   const filteredSummary = summaryRows.filter((r) => {
     if (!search) return true;
     const s = search.toLowerCase();
@@ -95,10 +86,8 @@ export default function Dashboard() {
            (r.sku && String(r.sku).toLowerCase().includes(s));
   });
 
-  // Prepare data for the top-refill chart
   const topRefillData = useMemo(() => {
-    if (!refillRows || !Array.isArray(refillRows)) return [];
-    // Some CSV exports might have different header names; try to find Required Qty field
+    if (!refillRows || !Array.isArray(refillRows) || refillRows.length === 0) return [];
     const qtyKeys = ["Required Qty to reach 30d", "Required Qty", "RequiredQty", "required_qty"];
     const skuKeys = ["SKU", "sku", "Sku"];
     const qtyKey = qtyKeys.find((k) => refillRows[0] && Object.prototype.hasOwnProperty.call(refillRows[0], k));
@@ -218,7 +207,6 @@ export default function Dashboard() {
             <>
               <h3 className="mb-2 font-medium">Refill Recommendations</h3>
 
-              {/* Top refills chart */}
               <div className="mb-6">
                 <TopRefillChart data={topRefillData} />
               </div>
@@ -262,7 +250,6 @@ export default function Dashboard() {
   );
 }
 
-/* tiny helpers */
 function Tab({ name, label, activeTab, setActiveTab }) {
   const active = activeTab === name;
   return (

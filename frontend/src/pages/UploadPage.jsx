@@ -1,16 +1,6 @@
-// frontend/src/pages/UploadPage.jsx
 import React, { useState } from "react";
 import { processFiles, getDownloadUrl } from "../api/api";
 import { useNavigate } from "react-router-dom";
-
-/*
-  UploadPage.jsx
-  - Upload two CSV files (sales + FBF stock)
-  - Validate extensions
-  - POST to backend /process
-  - Show progress, summary cards and download links
-  - After success, navigate to /dashboard with result in location.state
-*/
 
 export default function UploadPage() {
   const [salesFile, setSalesFile] = useState(null);
@@ -53,7 +43,6 @@ export default function UploadPage() {
       if (resp && resp.status === "success") {
         setResult(resp);
         setError(null);
-        // Navigate to dashboard and pass the processed result in state
         navigate("/dashboard", { state: { result: resp } });
       } else {
         setError((resp && resp.error) || "Processing failed");
@@ -65,23 +54,6 @@ export default function UploadPage() {
       setProcessing(false);
       setTimeout(() => setProgress(0), 800);
     }
-  }
-
-  function renderSummaryCards() {
-    if (!result) return null;
-    const summaryLen = Array.isArray(result.summary) ? result.summary.length : 0;
-    const warehouseLen = Array.isArray(result.warehouse) ? result.warehouse.length : 0;
-    const refillLen = Array.isArray(result.refill) ? result.refill.length : 0;
-    const excessLen = Array.isArray(result.excess) ? result.excess.length : 0;
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 my-6">
-        <Card title="SKUs (summary)" value={summaryLen} />
-        <Card title="Warehouse rows" value={warehouseLen} />
-        <Card title="SKUs needing refill" value={refillLen} highlight />
-        <Card title="Excess entries (>60d)" value={excessLen} />
-      </div>
-    );
   }
 
   function renderDownloadLinks() {
@@ -176,8 +148,6 @@ export default function UploadPage() {
 
       {result && (
         <>
-          {renderSummaryCards()}
-
           <div className="mt-6 bg-white border rounded p-4">
             <h3 className="text-lg font-medium mb-2">Quick Preview (top 10 SKUs)</h3>
             <div className="overflow-x-auto">
@@ -211,16 +181,6 @@ export default function UploadPage() {
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-/* Small helper components */
-function Card({ title, value, highlight }) {
-  return (
-    <div className={`p-4 border rounded ${highlight ? "bg-yellow-50" : "bg-white"}`}>
-      <div className="text-sm text-gray-500">{title}</div>
-      <div className="text-2xl font-bold">{value}</div>
     </div>
   );
 }

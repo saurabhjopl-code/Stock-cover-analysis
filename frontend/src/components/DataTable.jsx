@@ -1,13 +1,5 @@
-// frontend/src/components/DataTable.jsx
 import React, { useState, useMemo } from "react";
 
-/*
-  DataTable props:
-   - columns: [{ key, label }]
-   - rows: array of objects
-   - pageSize (optional)
-   - defaultSort: { key, desc }
-*/
 export default function DataTable({ columns = [], rows = [], pageSize = 25, defaultSort = null }) {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState(defaultSort?.key || null);
@@ -100,10 +92,8 @@ function parseFloatVal(v) {
 
 function formatCell(v) {
   if (v === null || v === undefined) return "-";
-  // numeric?
   const n = parseFloatVal(v);
   if (n !== null) {
-    // pretty format numbers with commas
     return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
   return String(v);

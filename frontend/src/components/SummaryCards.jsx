@@ -1,4 +1,3 @@
-// frontend/src/components/SummaryCards.jsx
 import React from "react";
 
 export default function SummaryCards({ summaryCount = 0, warehouseCount = 0, refillCount = 0, excessCount = 0 }) {

@@ -10,6 +10,7 @@ from processors.recommendations import get_recommendations
 
 app = FastAPI()
 
+# Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,16 +22,26 @@ app.add_middleware(
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+
 @app.post("/process")
-async def process_files(sales_file: UploadFile = File(...), stock_file: UploadFile = File(...)):
+async def process_files(
+    sales_file: UploadFile = File(...),
+    stock_file: UploadFile = File(...)
+):
     try:
         sales_df = pd.read_csv(sales_file.file)
         stock_df = pd.read_csv(stock_file.file)
 
+        # 1️⃣ Compute DRR, 30-day requirement
         drr_df = calculate_drr(sales_df)
+
+        # 2️⃣ Compute stock cover + SKU-level + warehouse-level
         summary_df, warehouse_df = compute_stock_cover(drr_df, stock_df)
+
+        # 3️⃣ Refill + excess stock recommendations
         refill_df, excess_df = get_recommendations(summary_df, warehouse_df)
 
+        # Save outputs
         summary_path = f"{OUTPUT_DIR}/stock_cover_summary.csv"
         warehouse_path = f"{OUTPUT_DIR}/warehouse_level_stock.csv"
         refill_path = f"{OUTPUT_DIR}/refill_recommendations.csv"
@@ -51,6 +62,7 @@ async def process_files(sales_file: UploadFile = File(...), stock_file: UploadFi
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.get("/download/{file_name}")
 async def download_file(file_name: str):

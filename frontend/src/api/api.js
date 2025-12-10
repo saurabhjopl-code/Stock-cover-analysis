@@ -1,4 +1,3 @@
-// frontend/src/api/api.js
 const BACKEND_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 export async function processFiles(salesFile, stockFile, onProgress) {
@@ -32,6 +31,5 @@ export async function processFiles(salesFile, stockFile, onProgress) {
 }
 
 export function getDownloadUrl(fileName) {
-  // Backend endpoint /download/<file_name>
   return `${BACKEND_BASE}/download/${encodeURIComponent(fileName)}`;
 }
