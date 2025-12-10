@@ -4,15 +4,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import SummaryCards from "../components/SummaryCards";
 import DataTable from "../components/DataTable";
 import { getDownloadUrl } from "../api/api";
+import Papa from "papaparse";
+import TopRefillChart from "../components/TopRefillChart";
 
 /*
- Dashboard behaviour:
-  - Try to read processed data from location.state.result (set by UploadPage)
-  - If missing, fetch CSV files from backend download endpoints and parse them
-  - Show summary cards + three main tabs:
-      1. Stock Cover Summary (SKU level)
-      2. Warehouse Level
-      3. Refill Recommendations & Excess Stock (two small tables)
+ Dashboard behaviour (updated):
+  - Use PapaParse to parse CSVs fetched from backend
+  - Show a bar chart of top 10 SKUs needing refill
 */
 
 export default function Dashboard() {
@@ -43,18 +41,25 @@ export default function Dashboard() {
           excess: getDownloadUrl("excess_stock.csv"),
         };
 
-        const fetchCSV = async (url) => {
+        const fetchAndParse = async (url) => {
           const res = await fetch(url);
           if (!res.ok) throw new Error(`Failed to fetch ${url}`);
           const text = await res.text();
-          return parseCSV(text);
+          return new Promise((resolve, reject) => {
+            Papa.parse(text, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (p) => resolve(p.data),
+              error: (err) => reject(err),
+            });
+          });
         };
 
         const [summary, warehouse, refill, excess] = await Promise.all([
-          fetchCSV(files.summary),
-          fetchCSV(files.warehouse),
-          fetchCSV(files.refill),
-          fetchCSV(files.excess),
+          fetchAndParse(files.summary),
+          fetchAndParse(files.warehouse),
+          fetchAndParse(files.refill),
+          fetchAndParse(files.excess),
         ]);
 
         const assembled = {
@@ -77,27 +82,6 @@ export default function Dashboard() {
     fetchFromBackend();
   }, [initialResult]);
 
-  // Basic CSV parser (no dependencies) -> array of objects
-  function parseCSV(text) {
-    // split lines, handle simple quoted values
-    const rows = text.trim().split(/\r?\n/);
-    if (!rows.length) return [];
-    // header
-    const headers = rows[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-    const data = [];
-    for (let i = 1; i < rows.length; i++) {
-      const line = rows[i];
-      // simple split - will break on embedded commas in quotes, but works for typical CSVs
-      const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-      const obj = {};
-      for (let j = 0; j < headers.length; j++) {
-        obj[headers[j]] = cols[j] === undefined ? "" : cols[j];
-      }
-      data.push(obj);
-    }
-    return data;
-  }
-
   const summaryRows = useMemo(() => (result?.summary ?? []), [result]);
   const warehouseRows = useMemo(() => (result?.warehouse ?? []), [result]);
   const refillRows = useMemo(() => (result?.refill ?? []), [result]);
@@ -110,6 +94,24 @@ export default function Dashboard() {
     return (r.SKU && String(r.SKU).toLowerCase().includes(s)) ||
            (r.sku && String(r.sku).toLowerCase().includes(s));
   });
+
+  // Prepare data for the top-refill chart
+  const topRefillData = useMemo(() => {
+    if (!refillRows || !Array.isArray(refillRows)) return [];
+    // Some CSV exports might have different header names; try to find Required Qty field
+    const qtyKeys = ["Required Qty to reach 30d", "Required Qty", "RequiredQty", "required_qty"];
+    const skuKeys = ["SKU", "sku", "Sku"];
+    const qtyKey = qtyKeys.find((k) => refillRows[0] && Object.prototype.hasOwnProperty.call(refillRows[0], k));
+    const skuKey = skuKeys.find((k) => refillRows[0] && Object.prototype.hasOwnProperty.call(refillRows[0], k));
+    if (!qtyKey || !skuKey) return [];
+
+    const parsed = refillRows.map(r => {
+      const qty = Number(String(r[qtyKey] || "0").replace(/[^0-9.\-eE]/g, "")) || 0;
+      return { sku: r[skuKey], qty };
+    }).sort((a,b) => b.qty - a.qty).slice(0, 10);
+
+    return parsed;
+  }, [refillRows]);
 
   if (loading) {
     return (
@@ -215,6 +217,12 @@ export default function Dashboard() {
           {activeTab === "refill" && (
             <>
               <h3 className="mb-2 font-medium">Refill Recommendations</h3>
+
+              {/* Top refills chart */}
+              <div className="mb-6">
+                <TopRefillChart data={topRefillData} />
+              </div>
+
               <DataTable
                 columns={[
                   { key: "SKU", label: "SKU" },
