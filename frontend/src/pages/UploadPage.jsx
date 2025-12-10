@@ -1,6 +1,7 @@
 // frontend/src/pages/UploadPage.jsx
 import React, { useState } from "react";
 import { processFiles, getDownloadUrl } from "../api/api";
+import { useNavigate } from "react-router-dom";
 
 /*
   UploadPage.jsx
@@ -8,6 +9,7 @@ import { processFiles, getDownloadUrl } from "../api/api";
   - Validate extensions
   - POST to backend /process
   - Show progress, summary cards and download links
+  - After success, navigate to /dashboard with result in location.state
 */
 
 export default function UploadPage() {
@@ -17,6 +19,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   function onSelectFile(e, setter) {
     setError(null);
@@ -50,6 +53,8 @@ export default function UploadPage() {
       if (resp && resp.status === "success") {
         setResult(resp);
         setError(null);
+        // Navigate to dashboard and pass the processed result in state
+        navigate("/dashboard", { state: { result: resp } });
       } else {
         setError((resp && resp.error) || "Processing failed");
       }
@@ -80,7 +85,6 @@ export default function UploadPage() {
   }
 
   function renderDownloadLinks() {
-    // The backend was set to save these filenames; match them if you used different names adjust here.
     const files = [
       { key: "stock_cover_summary.csv", label: "Stock Cover Summary (CSV)" },
       { key: "warehouse_level_stock.csv", label: "Warehouse Level (CSV)" },
@@ -224,7 +228,6 @@ function Card({ title, value, highlight }) {
 function formatNumber(v) {
   if (v === null || v === undefined) return "-";
   if (typeof v === "number") return Number.isFinite(v) ? v.toFixed(2) : "∞";
-  // try parse
   const n = Number(v);
   if (!isNaN(n)) return Number.isFinite(n) ? n.toFixed(2) : "∞";
   return v;
